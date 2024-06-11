@@ -267,7 +267,11 @@ mod tests {
 
         println!("proof size: {} bytes", proof.to_bytes().len());
 
+        let start_time2 = std::time::Instant::now();
         let is_verified = data.verify(proof);
+        let duration_ms2 = start_time2.elapsed().as_millis();
+        println!("demo verify done in {}ms", duration_ms2);
+
         is_verified.as_ref().unwrap();
         assert!(is_verified.is_ok());
     }
@@ -314,7 +318,11 @@ mod tests {
 
         println!("proof size: {} bytes", proof.to_bytes().len());
 
+        let start_time2 = std::time::Instant::now();
         let is_verified = data.verify(proof);
+        let duration_ms2 = start_time2.elapsed().as_millis();
+        println!("demo verify done in {}ms", duration_ms2);
+
         is_verified.as_ref().unwrap();
         assert!(is_verified.is_ok());
     }
