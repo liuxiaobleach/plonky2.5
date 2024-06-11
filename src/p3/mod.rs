@@ -158,6 +158,8 @@ mod tests {
     use plonky2::plonk::circuit_data::CircuitConfig;
     use plonky2::plonk::config::PoseidonGoldilocksConfig;
     use rand::Rng;
+    use crate::common::poseidon2::poseidon2::Poseidon2Hash;
+    use crate::common::poseidon2::poseidon2_gate::Poseidon2GoldilocksConfig;
 
     use crate::p3::air::VerifierConstraintFolder;
     use crate::p3::extension::CircuitBuilderP3ExtArithmetic;
@@ -262,6 +264,55 @@ mod tests {
         let duration_ms = start_time.elapsed().as_millis();
         println!("demo proved in {}ms", duration_ms);
         println!("proof public_inputs: {:?}", proof.public_inputs);
+
+        println!("proof size: {} bytes", proof.to_bytes().len());
+
+        let is_verified = data.verify(proof);
+        is_verified.as_ref().unwrap();
+        assert!(is_verified.is_ok());
+    }
+
+    #[test]
+    fn test_verify_plonky3_proof_with_poseidon2() {
+        const D: usize = 2;
+        type C = Poseidon2GoldilocksConfig;
+        type F = GoldilocksField;
+        let config = CircuitConfig::standard_recursion_config();
+
+        let proof_str = include_str!("../../artifacts/proof_fibonacci.json");
+        let proof = serde_json::from_str::<P3ProofField>(proof_str).unwrap();
+        // let p: Proof<GoldilocksField>;
+        // unsafe { p = std::mem::transmute(proof.clone()) }
+        // std::fs::write("ppp.json", serde_json::to_string(&p).unwrap()).unwrap();
+
+        let mut builder = CircuitBuilder::<F, D>::new(config);
+        let air = FibonacciAir {};
+
+        let config = FriConfig {
+            log_blowup: 1,
+            num_queries: 100,
+            proof_of_work_bits: 16,
+        };
+
+        let proof_target = builder.p3_verify_proof::<Poseidon2Hash>(proof.clone(), &air, config);
+
+        let data = builder.build::<C>();
+
+        let mut pw = PartialWitness::new();
+
+        let p: Proof<GoldilocksField>;
+        unsafe { p = std::mem::transmute(proof) }
+
+        proof_target.set_witness::<F, D, _>(&mut pw, &p);
+
+        let start_time = std::time::Instant::now();
+        let proof = data.prove(pw).unwrap();
+        std::fs::write("proof.json", serde_json::to_string(&proof).unwrap()).unwrap();
+        let duration_ms = start_time.elapsed().as_millis();
+        println!("demo proved in {}ms", duration_ms);
+        println!("proof public_inputs: {:?}", proof.public_inputs);
+
+        println!("proof size: {} bytes", proof.to_bytes().len());
 
         let is_verified = data.verify(proof);
         is_verified.as_ref().unwrap();
